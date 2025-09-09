@@ -4,7 +4,7 @@ services:
     image: prom/prometheus:v3.3.1
     container_name: prometheus
     networks:
-      - portifolio-network
+      - net-local
     ports:
       - "9090:9090"
     volumes:
@@ -14,12 +14,11 @@ services:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.path=/prometheus"
       - "--storage.tsdb.retention.time=7d"
-    mem_limit: 120m
-    cpus: '0.2'
 
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:v0.52.0
     container_name: cadvisor
+    privileged: true
     ports:
       - "8081:8080"
     volumes:
@@ -34,15 +33,31 @@ services:
       - apparmor=unconfined
     restart: always
     networks:
-      - portifolio-network
+      - net-local
     command:
       - "--docker_only=true"
       - "--housekeeping_interval=30s"
-    mem_limit: 150M
-    cpus: '0.4'
     
+  grafana:
+    image: grafana/grafana:12.0.1
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
+      - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+    networks:
+      - net-local
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+
 networks:
-  portifolio-network:
+  net-local:
     driver: bridge
 
 volumes:
